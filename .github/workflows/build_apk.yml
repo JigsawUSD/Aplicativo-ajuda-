@@ -1,3 +1,5 @@
+# Workflow para compilar o APK do WakeAlert automaticamente a cada push
+# Workflow to build WakeAlert APK automatically on every push
 name: Build WakeAlert APK
 
 on:
