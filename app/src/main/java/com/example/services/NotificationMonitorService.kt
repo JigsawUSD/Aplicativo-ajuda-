@@ -104,17 +104,72 @@ class NotificationMonitorService : NotificationListenerService() {
             Log.d(TAG, "Received notification: App=$appName, Package=$appPackage, Title=$title, Content=$text")
 
             val db = AppDatabase.getDatabase(applicationContext)
-            val activeContacts = db.contactDao().getActiveContacts()
+            
+            // 1. Check Alerta de Urgência (Keyword matching)
+            val urgencyEnabled = UrgencySettings.isEnabled(applicationContext)
+            var urgencyTriggered = false
+            
+            if (urgencyEnabled) {
+                val keywords = UrgencySettings.getKeywords(applicationContext)
+                val whoCanTrigger = UrgencySettings.getWhoCanTrigger(applicationContext)
+                val intensity = UrgencySettings.getIntensity(applicationContext)
+                
+                val matchedKeyword = keywords.firstOrNull { keyword ->
+                    keyword.isNotBlank() && (
+                        title.contains(keyword, ignoreCase = true) || 
+                        text.contains(keyword, ignoreCase = true)
+                    )
+                }
+                
+                if (matchedKeyword != null) {
+                    Log.i(TAG, "⚠️ Keyword Urgency Match Found: '$matchedKeyword'")
+                    if (whoCanTrigger == "ANYONE") {
+                        val tempContact = PriorityContact(
+                            id = -1,
+                            name = if (title.isNotBlank()) title else "Mensagem Urgente",
+                            phone = "",
+                            startTime = "00:00",
+                            endTime = "23:59",
+                            daysOfWeek = "1,2,3,4,5,6,7",
+                            alertType = "SOUND_VIB",
+                            intensity = intensity,
+                            isActive = true
+                        )
+                        triggerAlert(tempContact, appName, title, "⚠️ Urgência: \"$matchedKeyword\" • $text", db)
+                        urgencyTriggered = true
+                    } else {
+                        // ONLY_PRIORITY_CONTACTS
+                        val activeContacts = db.contactDao().getActiveContacts()
+                        val matchingContact = activeContacts.firstOrNull { contact ->
+                            title.contains(contact.name, ignoreCase = true) || 
+                            text.contains(contact.name, ignoreCase = true)
+                        }
+                        
+                        if (matchingContact != null) {
+                            val tempContact = matchingContact.copy(
+                                intensity = intensity,
+                                alertType = "SOUND_VIB"
+                            )
+                            triggerAlert(tempContact, appName, title, "⚠️ Urgência: \"$matchedKeyword\" • $text", db)
+                            urgencyTriggered = true
+                        }
+                    }
+                }
+            }
+            
+            // 2. Fallback to regular contact matching if urgency didn't trigger
+            if (!urgencyTriggered) {
+                val activeContacts = db.contactDao().getActiveContacts()
+                for (contact in activeContacts) {
+                    // Matches if contact name is present in the notification title/sender
+                    val matchByName = title.contains(contact.name, ignoreCase = true) ||
+                            text.contains(contact.name, ignoreCase = true)
 
-            for (contact in activeContacts) {
-                // Matches if contact name is present in the notification title/sender
-                val matchByName = title.contains(contact.name, ignoreCase = true) ||
-                        text.contains(contact.name, ignoreCase = true)
-
-                if (matchByName) {
-                    if (isRuleSatisfied(contact)) {
-                        triggerAlert(contact, appName, title, text, db)
-                        break
+                    if (matchByName) {
+                        if (isRuleSatisfied(contact)) {
+                            triggerAlert(contact, appName, title, text, db)
+                            break
+                        }
                     }
                 }
             }

@@ -13,41 +13,31 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = AccentGold,
-    secondary = AlarmWarningOrange,
-    tertiary = AlarmSuccessGreen,
+    primary = PrimaryPurple,
+    secondary = SecondaryPurple,
+    tertiary = ActiveGreen,
     background = DarkBackground,
     surface = DarkSurface,
     surfaceVariant = DarkSurfaceElevated,
-    onPrimary = PrimaryContainerColor,
+    onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = TextPrimaryDark,
     onSurface = TextPrimaryDark,
-    error = AlarmActiveRed,
-    outline = BorderColor
+    error = WarningRed,
+    outline = BorderColor,
+    primaryContainer = PrimaryContainerColor,
+    secondaryContainer = SecondaryContainerColor
   )
 
-private val LightColorScheme =
-  lightColorScheme(
-    primary = Color(0xFFE65100),
-    secondary = Color(0xFFF57C00),
-    tertiary = Color(0xFF2E7D32),
-    background = Color(0xFFFAF9F6),
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    error = Color(0xFFC62828)
-  )
+private val LightColorScheme = DarkColorScheme // Force dark theme for security, reliability and premium look
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = true, // Force premium dark look as the default for safety alarms
+  darkTheme: Boolean = true, // Force premium dark look
   dynamicColor: Boolean = false, // Keep consistent branding
   content: @Composable () -> Unit,
 ) {
-  val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+  val colorScheme = DarkColorScheme
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

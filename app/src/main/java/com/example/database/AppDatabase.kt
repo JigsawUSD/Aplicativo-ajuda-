@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.models.AlertHistory
 import com.example.models.PriorityContact
 
-@Database(entities = [PriorityContact::class, AlertHistory::class], version = 1, exportSchema = false)
+@Database(entities = [PriorityContact::class, AlertHistory::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
     abstract fun alertHistoryDao(): AlertHistoryDao
