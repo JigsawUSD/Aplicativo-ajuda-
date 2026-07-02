@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.provider.ContactsContract
 import android.widget.Toast
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -233,7 +235,7 @@ fun AddEditContactScreen(
                     )
 
                     Text(
-                        text = "O aplicativo irá alarmar apenas se a mensagem do contato chegar dentro do período configurado abaixo.",
+                        text = "O alarme só tocará se a mensagem chegar no período definido abaixo. Toque nos campos para selecionar o horário com o relógio.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -244,23 +246,95 @@ fun AddEditContactScreen(
                     ) {
                         OutlinedTextField(
                             value = startTime,
-                            onValueChange = { startTime = it },
+                            onValueChange = { },
+                            readOnly = true,
                             label = { Text("Início") },
-                            placeholder = { Text("00:00") },
-                            modifier = Modifier.weight(1f).testTag("start_time_input"),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    showTimePicker(context, startTime) { startTime = it }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "Selecionar horário de início",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    showTimePicker(context, startTime) { startTime = it }
+                                }
+                                .testTag("start_time_input"),
+                            shape = RoundedCornerShape(10.dp)
                         )
 
                         OutlinedTextField(
                             value = endTime,
-                            onValueChange = { endTime = it },
+                            onValueChange = { },
+                            readOnly = true,
                             label = { Text("Fim") },
-                            placeholder = { Text("23:59") },
-                            modifier = Modifier.weight(1f).testTag("end_time_input"),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    showTimePicker(context, endTime) { endTime = it }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "Selecionar horário de fim",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    showTimePicker(context, endTime) { endTime = it }
+                                }
+                                .testTag("end_time_input"),
+                            shape = RoundedCornerShape(10.dp)
                         )
+                    }
+
+                    // Friendly explanation of selected hours
+                    Text(
+                        text = "Período Ativo: Das ${getFriendlyTimeDescription(startTime)} às ${getFriendlyTimeDescription(endTime)}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Atalhos rápidos:",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val presets = listOf(
+                            Triple("Dia Todo (24h)", "00:00", "23:59"),
+                            Triple("Horário Comercial", "08:00", "18:00"),
+                            Triple("Noite (Overnight)", "22:00", "06:00")
+                        )
+                        presets.forEach { (label, start, end) ->
+                            val isSelected = startTime == start && endTime == end
+                            AssistChip(
+                                onClick = {
+                                    startTime = start
+                                    endTime = end
+                                },
+                                label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                    labelColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -453,5 +527,42 @@ fun AddEditContactScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+}
+
+private fun showTimePicker(context: Context, initialTime: String, onTimeSelected: (String) -> Unit) {
+    val parts = initialTime.split(":")
+    val hour = parts.getOrNull(0)?.toIntOrNull() ?: 0
+    val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+    
+    android.app.TimePickerDialog(
+        context,
+        { _, selectedHour, selectedMinute ->
+            val formattedTime = String.format(java.util.Locale.getDefault(), "%02d:%02d", selectedHour, selectedMinute)
+            onTimeSelected(formattedTime)
+        },
+        hour,
+        minute,
+        true // 24-hour format
+    ).show()
+}
+
+private fun getFriendlyTimeDescription(time: String): String {
+    val parts = time.split(":")
+    if (parts.size != 2) return time
+    val hour = parts[0].toIntOrNull() ?: return time
+    val minute = parts[1].toIntOrNull() ?: 0
+    
+    val minuteStr = if (minute == 0) "" else " e $minute ${if (minute == 1) "minuto" else "minutos"}"
+    
+    return when {
+        hour == 0 && minute == 0 -> "Meia-noite (00:00)"
+        hour == 12 && minute == 0 -> "Meio-dia (12:00)"
+        hour == 23 && minute == 59 -> "Fim do dia (23h59)"
+        hour == 0 -> "12h da madrugada$minuteStr"
+        hour < 12 -> "${hour}h da manhã$minuteStr"
+        hour == 12 -> "12h$minuteStr"
+        hour < 18 -> "${hour - 12}h da tarde (ou ${hour}h)$minuteStr"
+        else -> "${hour - 12}h da noite (ou ${hour}h)$minuteStr"
     }
 }

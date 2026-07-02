@@ -156,8 +156,13 @@ class NotificationMonitorService : NotificationListenerService() {
         
         if (startParts.size != 2 || endParts.size != 2) return true // default to active if parse fails
 
-        val startMinutes = startParts[0].toIntOrNull()?.let { it * 60 } ?: 0 + (startParts[1].toIntOrNull() ?: 0)
-        val endMinutes = endParts[0].toIntOrNull()?.let { it * 60 } ?: 0 + (endParts[1].toIntOrNull() ?: 0)
+        val startHour = startParts[0].toIntOrNull() ?: 0
+        val startMinute = startParts[1].toIntOrNull() ?: 0
+        val startMinutes = startHour * 60 + startMinute
+
+        val endHour = endParts[0].toIntOrNull() ?: 0
+        val endMinute = endParts[1].toIntOrNull() ?: 0
+        val endMinutes = endHour * 60 + endMinute
 
         val isTimeValid = if (startMinutes <= endMinutes) {
             currentTimeMinutes in startMinutes..endMinutes

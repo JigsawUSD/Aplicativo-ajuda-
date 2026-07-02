@@ -201,7 +201,7 @@ fun HomeScreen(
                     EmptyHistoryState()
                 }
             } else {
-                items(history, key = { it.id }) { historyEntry ->
+                items(history) { historyEntry ->
                     HistoryCard(historyEntry = historyEntry)
                 }
             }
